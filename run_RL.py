@@ -13,6 +13,7 @@ import seaborn as sns
 import numpy as np
 import pandas as pd
 
+
 import plotting as pl
 import time
 import matplotlib
@@ -20,18 +21,18 @@ import matplotlib
 matplotlib.style.use('ggplot')
 
 if __name__ == "__main__":
-    directory = "{}/data".format(sys.path[0])
+    directory = "{}\\data".format(sys.path[0])
     if not os.path.exists(directory):
         os.makedirs(directory)
-    path_fun = lambda x: "{}/{}_{}.txt".format(directory,x, decks)
+    path_fun = lambda x: "{}\\{}_{}.txt".format(directory,x, decks)
     # init constants
     omega = 0.9      # power decay of the learning rate
-    n_sims = 10 ** 4  # Number of episodes generated
+    n_sims = 10 ** 6 # Number of episodes generated
     epsilon = 0.05     # Probability in epsilon-soft strategy
     init_val = 0.0
     warmup = n_sims//10
     # Directory to save plots in
-    plot_dir = "{}/figures/".format(sys.path[0])
+    plot_dir = "{}\\figures\\".format(sys.path[0])
 
     
     for decks in [inf]: #1,2,6,8,
@@ -42,6 +43,7 @@ if __name__ == "__main__":
         env = bjk.BlackjackEnvExtend(decks=decks, seed=seed)
         sum_env = bjk_base.BlackjackEnvBase(decks=decks, seed=seed)
 
+        
         print("----- Starting MC training on expanded state space -----")
         # MC-learning wit expanded state representation
         start_time_MC = time.time()
@@ -52,6 +54,7 @@ if __name__ == "__main__":
         print("Cumulative avg. reward = " + str(MC_avg_reward))
         time_to_completion_MC = time.time() - start_time_MC
 
+        
         print("----- Starting Q-learning on expanded state space -----")
         # Q-learning with expanded state representation
         start_time_expanded = time.time()
@@ -75,7 +78,6 @@ if __name__ == "__main__":
         print("Training time: \n " +
             "Expanded state space MC: {} \n Expanded state space: {} \n Sum state space: {}".format(
                 time_to_completion_MC, time_to_completion_expanded, time_to_completion_sum))
-
 
         # Convert Q (extended state) to sum state representation and make 3D plots
         # Extended state MC-learning
@@ -106,29 +108,48 @@ if __name__ == "__main__":
         # create line plots
         env_types = ["hand_MC", "hand", "sum"]
         fig, lgd = pl.plot_avg_reward_episode(directory, env_types, [str(decks)])
-        fig.savefig("{}/avgReturnEp_ndeck{}_explore.png".format(plot_dir, decks),
+        fig.savefig("{}\\avgReturnEp_ndeck{}_explore.png".format(plot_dir, decks),
                                 bbox_extra_artists=(lgd,), bbox_inches='tight')
         matplotlib.pyplot.close(fig)
 
     # create table for optimal strategy (assignment d))
-    player_sum, dealer_sum = np.meshgrid(np.arange(12,22), np.arange(1,11))  # table for storing optimal strategy
-    state_space = [(player, dealer, True) for player in player_sum for dealer in dealer_sum]
-    actions = [1, 0]
-    optimal_actions = {}
-    for state in state_space:
-        best_action = max(actions, key=lambda action: Q[state][action])
-        optimal_actions[state] = best_action
+        # Define the range of dealer's showing card and player's sum
+    dealer_showing_range = range(1, 11)  # Dealer showing 2 through 11 (Ace)
+    player_sum_range = range(12, 22)    # Player sum 12 through 21
 
-    optimal_action_grid = pd.DataFrame(
-        index=player_sum, columns=dealer_sum, dtype=int
-    )
+    # Create a grid to store the optimal action (0 for "stay", 1 for "hit")
+    optimal_strategy_usable = np.zeros((len(player_sum_range), len(dealer_showing_range)))
+    optimal_strategy_notusable = np.zeros_like(optimal_strategy_usable)
 
-    for (player, dealer), action in optimal_actions.items():
-        optimal_action_grid.loc[player, dealer] = action
+    usable = True
 
-    action_map = {'1': 1, '0':0}
-    heatmap_data = optimal_action_grid.replace(action_map)
+    for player_sum in player_sum_range:
+        for dealer_showing in dealer_showing_range:
+            state = (player_sum, dealer_showing, usable)
+            optimal_action = 0
+            if sumQ[state][1] > sumQ[state][0]:
+                optimal_action = 1
+                print(state)
+            optimal_strategy_usable[player_sum - 12, dealer_showing - 1] = optimal_action
+    
+    usable = False
 
-    sns.heatmap(
-        heatmap_data, annot=optimal_action_grid, fmt='', cbar=False
-    )
+    #print(sumQ.keys())
+
+    for player_sum in player_sum_range:
+        for dealer_showing in dealer_showing_range:
+            state = (player_sum, dealer_showing, usable)
+            optimal_action = 0
+            if sumQ[state][1] > sumQ[state][0]:
+                optimal_action = 1
+            optimal_strategy_notusable[player_sum-12, dealer_showing-1] = optimal_action
+    print(sumQ[(12, 1, True)])
+    print(optimal_strategy_usable)
+    optimal_strategy_usable = np.swapaxes(optimal_strategy_usable, 1, 0)
+    ax5 = sns.heatmap(optimal_strategy_usable, linewidth=0, annot=True, cbar=False, cmap='Accent_r')
+    ax5.set_xlabel('Player sum')
+    ax5.set_ylabel('Dealer showing')
+    ax5.set_xticklabels(player_sum_range)
+    ax5.set_yticklabels(['A'] + list(range(2,11)), fontsize = 12)
+    
+    matplotlib.pyplot.show()
