@@ -16,7 +16,8 @@ import pandas as pd
 
 import plotting as pl
 import time
-import matplotlib
+import matplotlib 
+import matplotlib.pyplot as plt
 
 matplotlib.style.use('ggplot')
 
@@ -26,15 +27,15 @@ if __name__ == "__main__":
         os.makedirs(directory)
     path_fun = lambda x: "{}\\{}_{}.txt".format(directory,x, decks)
     # init constants
-    omega = 0.9      # power decay of the learning rate
-    n_sims = 10 ** 6 # Number of episodes generated
+    omega = 0.89    # power decay of the learning rate
+    n_sims = 10 ** 5  # Number of episodes generated
     epsilon = 0.05     # Probability in epsilon-soft strategy
     init_val = 0.0
     warmup = n_sims//10
     # Directory to save plots in
     plot_dir = "{}\\figures\\".format(sys.path[0])
 
-    
+
     for decks in [inf]: #1,2,6,8,
         print("----- deck number equal to {} -----".format(decks))
         # set seed
@@ -64,9 +65,9 @@ if __name__ == "__main__":
         print("Number of explored states: " + str(len(Q)))
         print("Cumulative avg. reward = " + str(avg_reward))
         time_to_completion_expanded = time.time() - start_time_expanded
-        
+
         print("----- Starting Q-learning for sum-based state space -----")
-        # Q-learning with player sum state representation
+            # Q-learning with player sum state representation
         start_time_sum = time.time()
         sumQ, sum_avg_reward, sum_state_action_count = rl.learn_Q(
             sum_env, n_sims, omega = omega, epsilon = epsilon, init_val = init_val,
@@ -78,6 +79,7 @@ if __name__ == "__main__":
         print("Training time: \n " +
             "Expanded state space MC: {} \n Expanded state space: {} \n Sum state space: {}".format(
                 time_to_completion_MC, time_to_completion_expanded, time_to_completion_sum))
+
 
         # Convert Q (extended state) to sum state representation and make 3D plots
         # Extended state MC-learning
@@ -96,8 +98,7 @@ if __name__ == "__main__":
         pl.plot_value_function(V_conv_filt,
                             title = "Expanded state, " + str(decks) + " decks",
                             directory = plot_dir,
-                            file_name = "3D_exp_" + str(decks) + "_decks.png")
-
+                            file_name = "3D_exp_" + str(decks) + "_decks_explore.png")
         # Likewise make 3D plots for sumQ
         V_sum = rl.convert_to_value_function(sumQ)
         V_sum_filt = rl.fill_missing_sum_states(rl.filter_states(V_sum))
@@ -108,9 +109,10 @@ if __name__ == "__main__":
         # create line plots
         env_types = ["hand_MC", "hand", "sum"]
         fig, lgd = pl.plot_avg_reward_episode(directory, env_types, [str(decks)])
-        fig.savefig("{}\\avgReturnEp_ndeck{}_explore.png".format(plot_dir, decks),
+        fig.savefig("{}/avgReturnEp_ndeck{}_explore.png".format(plot_dir, decks),
                                 bbox_extra_artists=(lgd,), bbox_inches='tight')
         matplotlib.pyplot.close(fig)
+
 
     # create table for optimal strategy (assignment d))
         # Define the range of dealer's showing card and player's sum
