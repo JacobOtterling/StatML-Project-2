@@ -28,8 +28,8 @@ if __name__ == "__main__":
     path_fun = lambda x: "{}\\{}_{}.txt".format(directory,x, decks)
     # init constants
     omega = 0.89    # power decay of the learning rate
-    n_sims = 10 ** 5  # Number of episodes generated
-    epsilon = 0.05     # Probability in epsilon-soft strategy
+    n_sims = 10 ** 6  # Number of episodes generated
+    epsilon = 0.5     # Probability in epsilon-soft strategy
     init_val = 0.0
     warmup = n_sims//10
     # Directory to save plots in
@@ -121,7 +121,7 @@ if __name__ == "__main__":
 
     # Create a grid to store the optimal action (0 for "stay", 1 for "hit")
     optimal_strategy_usable = np.zeros((len(player_sum_range), len(dealer_showing_range)))
-    optimal_strategy_notusable = np.zeros_like(optimal_strategy_usable)
+    optimal_strategy_notusable = np.zeros((len(player_sum_range), len(dealer_showing_range)))
 
     usable = True
 
@@ -136,22 +136,33 @@ if __name__ == "__main__":
     
     usable = False
 
-    #print(sumQ.keys())
-
     for player_sum in player_sum_range:
         for dealer_showing in dealer_showing_range:
             state = (player_sum, dealer_showing, usable)
             optimal_action = 0
             if sumQ[state][1] > sumQ[state][0]:
                 optimal_action = 1
-            optimal_strategy_notusable[player_sum-12, dealer_showing-1] = optimal_action
+            optimal_strategy_notusable[player_sum - 12, dealer_showing - 1] = optimal_action
+    
     print(sumQ[(12, 1, True)])
     print(optimal_strategy_usable)
+
     optimal_strategy_usable = np.swapaxes(optimal_strategy_usable, 1, 0)
+    optimal_strategy_notusable = np.swapaxes(optimal_strategy_notusable, 1, 0)
+
     ax5 = sns.heatmap(optimal_strategy_usable, linewidth=0, annot=True, cbar=False, cmap='Accent_r')
     ax5.set_xlabel('Player sum')
     ax5.set_ylabel('Dealer showing')
     ax5.set_xticklabels(player_sum_range)
     ax5.set_yticklabels(['A'] + list(range(2,11)), fontsize = 12)
+    ax5.set_title('Optimal strategy with usable ace')
     
+    matplotlib.pyplot.show()
+
+    ax6 = sns.heatmap(optimal_strategy_notusable, linewidth=0, annot=True, cbar=False, cmap='Accent_r')
+    ax6.set_xlabel('Player sum')
+    ax6.set_ylabel('Dealer showing')
+    ax6.set_xticklabels(player_sum_range)
+    ax6.set_yticklabels(['A'] + list(range(2,11)), fontsize = 12)
+    ax6.set_title('Optimal strategy without usable ace')
     matplotlib.pyplot.show()
